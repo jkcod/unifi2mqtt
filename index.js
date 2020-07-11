@@ -5,6 +5,7 @@
 const Unifi = require('ubnt-unifi');
 const log = require('yalm');
 const Mqtt = require('mqtt');
+const URI = require("uri-js");
 const config = require('./config.js');
 const pkg = require('./package.json');
 
@@ -25,10 +26,13 @@ const dataDevice = {};
 
 log.info('mqtt trying to connect', config.url);
 
-const mqtt = Mqtt.connect(config.url, {
-    will: {topic: config.name + '/connected', payload: '0', retain: true},
-    rejectUnauthorized: !config.insecure
-});
+const parsedURI = URI.parse(config.url);
+log.info('parsed URI', parsedURI);
+
+const username = parsedURI.userinfo ? parsedURI.userinfo.split(":")[0] : undefined;
+const password = parsedURI.userinfo ? parsedURI.userinfo.split(":")[1] : undefined;
+
+const mqtt = Mqtt.connect(parsedURI.scheme + "://" + parsedURI.host, {username: username, password: password, rejectUnauthorized: !config.insecure, will: {topic: config.name + '/connected', payload: '0', retain: true}});
 
 function mqttPub(topic, payload, options) {
     if (typeof payload === 'object') {
